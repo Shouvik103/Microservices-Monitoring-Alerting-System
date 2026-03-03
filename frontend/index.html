@@ -287,6 +287,7 @@
     .btn-action.resume { background: var(--green-bg);  color: var(--green);  }
     .btn-action:disabled { opacity: .5; cursor: not-allowed; }
     .badge.paused { background: rgba(241,196,15,.12); color: var(--yellow); }
+    .btn-action.export { background: rgba(108,99,255,.12); color: var(--accent-light); }
 
     /* Show paused toggle */
     .toggle-bar {
@@ -556,7 +557,10 @@
             <td>${s.uptime_24h.toFixed(1)} %</td>
             <td>${s.avg_response_time.toFixed(0)} ms</td>
             <td style="font-size:.82rem;">${fmtTime(s.last_checked)}</td>
-            <td><button class="btn-action pause" onclick="togglePause(${s.service_id})">⏸ Pause</button></td>
+            <td>
+              <button class="btn-action export" onclick="exportCSV(${s.service_id})" title="Download CSV">📥</button>
+              <button class="btn-action pause" onclick="togglePause(${s.service_id})">⏸ Pause</button>
+            </td>
           </tr>
         `).join('');
 
@@ -598,6 +602,12 @@
         if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
         await refresh();
       } catch (err) { console.error('Resume failed:', err); }
+    }
+
+    // ---- Export CSV ----
+    function exportCSV(serviceId) {
+      const url = `${API_BASE}/services/${serviceId}/export?format=csv&hours=24`;
+      window.open(url, '_blank');
     }
 
     function updateTagFilter() {
