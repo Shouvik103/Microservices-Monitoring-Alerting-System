@@ -282,12 +282,35 @@
       letter-spacing: .3px;
       transition: opacity .15s ease;
     }
-    .btn-action:hover { opacity: .85; }
-    .btn-action.pause  { background: var(--yellow-bg); color: var(--yellow); }
-    .btn-action.resume { background: var(--green-bg);  color: var(--green);  }
-    .btn-action:disabled { opacity: .5; cursor: not-allowed; }
-    .badge.paused { background: rgba(241,196,15,.12); color: var(--yellow); }
-    .btn-action.export { background: rgba(108,99,255,.12); color: var(--accent-light); }
+
+    .btn-action:hover {
+      opacity: .85;
+    }
+
+    .btn-action.pause {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+    }
+
+    .btn-action.resume {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .btn-action:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .badge.paused {
+      background: rgba(241, 196, 15, .12);
+      color: var(--yellow);
+    }
+
+    .btn-action.export {
+      background: rgba(108, 99, 255, .12);
+      color: var(--accent-light);
+    }
 
     /* Show paused toggle */
     .toggle-bar {
@@ -296,8 +319,16 @@
       gap: 8px;
       margin-left: auto;
     }
-    .toggle-bar label { font-size: .82rem; color: var(--text-muted); cursor: pointer; }
-    .toggle-bar input { cursor: pointer; }
+
+    .toggle-bar label {
+      font-size: .82rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .toggle-bar input {
+      cursor: pointer;
+    }
 
     /* ---- Two-col bottom ---- */
     .bottom-grid {
@@ -389,6 +420,59 @@
       background: var(--border);
       border-radius: 3px;
     }
+
+    /* ---- Incident timeline ---- */
+    .incident-item {
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: .84rem;
+      line-height: 1.5;
+    }
+
+    .incident-item.ongoing {
+      background: var(--red-bg);
+      border-left: 3px solid var(--red);
+    }
+
+    .incident-item.resolved {
+      background: var(--green-bg);
+      border-left: 3px solid var(--green);
+    }
+
+    .incident-item .inc-header {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .incident-item .inc-meta {
+      font-size: .74rem;
+      color: var(--text-muted);
+    }
+
+    .badge.ongoing {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .badge.resolved {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .ws-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background: var(--red);
+      transition: background .3s;
+    }
+
+    .ws-indicator.connected {
+      background: var(--green);
+    }
   </style>
 </head>
 
@@ -397,7 +481,7 @@
   <!-- Header -->
   <header class="header">
     <h1>🔍 Microservices Monitor</h1>
-    <div class="meta"><span class="dot"></span>Auto-refresh every 30 s</div>
+    <div class="meta"><span class="ws-indicator" id="ws-dot"></span><span id="refresh-label">Connecting …</span></div>
   </header>
 
   <div class="container">
@@ -455,8 +539,8 @@
       </table>
     </div>
 
-    <!-- Bottom grid: Chart + Alerts -->
-    <div class="bottom-grid">
+    <!-- Bottom grid: Chart + Alerts + Incidents -->
+    <div class="bottom-grid" style="grid-template-columns: 1fr 1fr 1fr;">
       <div class="chart-card">
         <h2 class="section-title">Response Time (ms)</h2>
         <canvas id="responseChart" height="220"></canvas>
@@ -464,6 +548,12 @@
       <div class="alerts-card">
         <h2 class="section-title">Recent Alerts</h2>
         <div id="alerts-feed">
+          <div class="empty">Loading …</div>
+        </div>
+      </div>
+      <div class="alerts-card">
+        <h2 class="section-title">Incident Timeline</h2>
+        <div id="incidents-feed">
           <div class="empty">Loading …</div>
         </div>
       </div>
@@ -729,12 +819,136 @@
     async function refresh() {
       const services = await fetchDashboard();
       await fetchAlerts();
+      await fetchIncidents();
       await fetchChartData(services);
     }
 
-    // Initial load + 30 s auto-refresh
+    // ---- Incidents ----
+    async function fetchIncidents() {
+      try {
+        const res = await fetch(`${API_BASE}/incidents?limit=20`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const feed = document.getElementById('incidents-feed');
+        if (data.length === 0) {
+          feed.innerHTML = '<div class="empty">No incidents recorded</div>';
+          return;
+        }
+        feed.innerHTML = data.map(inc => {
+          const badge = inc.status === 'ongoing'
+            ? '<span class="badge ongoing">ONGOING</span>'
+            : '<span class="badge resolved">RESOLVED</span>';
+          const dur = inc.duration_s
+            ? fmtDuration(inc.duration_s)
+            : inc.status === 'ongoing' ? 'In progress …' : '—';
+          return `
+            <div class="incident-item ${inc.status}">
+              <div class="inc-header">${badge} ${esc(inc.service_name || 'Service #' + inc.service_id)}</div>
+              <div>Duration: ${dur}</div>
+              <div class="inc-meta">${fmtTime(inc.started_at)}${inc.resolved_at ? ' → ' + fmtTime(inc.resolved_at) : ''}</div>
+            </div>`;
+        }).join('');
+      } catch (err) {
+        console.error('Incidents fetch failed:', err);
+      }
+    }
+
+    function fmtDuration(seconds) {
+      if (seconds < 60) return seconds + 's';
+      if (seconds < 3600) return Math.floor(seconds / 60) + 'm ' + (seconds % 60) + 's';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return h + 'h ' + m + 'm';
+    }
+
+    // ---- WebSocket live updates ----
+    let ws = null;
+    let wsRetryTimer = null;
+
+    function connectWebSocket() {
+      const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = (window.location.port === '3000' || window.location.port === '3001')
+        ? `${window.location.hostname}:8000`
+        : window.location.host;
+      const wsUrl = `${wsProto}//${wsHost}/ws`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        document.getElementById('ws-dot').classList.add('connected');
+        document.getElementById('refresh-label').textContent = 'Live (WebSocket)';
+        // Send keepalive pings
+        ws._pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) ws.send('ping');
+        }, 25000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'dashboard') {
+            renderDashboardFromWS(msg.data);
+          }
+        } catch (e) {
+          console.error('WS parse error:', e);
+        }
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-dot').classList.remove('connected');
+        document.getElementById('refresh-label').textContent = 'Reconnecting …';
+        clearInterval(ws._pingInterval);
+        wsRetryTimer = setTimeout(connectWebSocket, 5000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    function renderDashboardFromWS(data) {
+      // Update counters
+      let up = 0, down = 0;
+      data.forEach(s => {
+        if (s.current_status === 'UP') up++;
+        else if (s.current_status === 'DOWN') down++;
+      });
+      document.getElementById('total-count').textContent = data.length;
+      document.getElementById('up-count').textContent = up;
+      document.getElementById('down-count').textContent = down;
+
+      // Collect tags
+      data.forEach(s => (s.tags || []).forEach(t => allTags.add(t)));
+      updateTagFilter();
+
+      // Update table (only active services from WS)
+      const tbody = document.getElementById('services-tbody');
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No services registered</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(s => `
+        <tr>
+          <td><strong>${esc(s.service_name)}</strong></td>
+          <td>${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
+          <td style="color:var(--text-muted); font-size:.82rem;">${esc(s.url)}</td>
+          <td><span class="badge ${badgeClass(s.current_status)}">${s.current_status || 'N/A'}</span></td>
+          <td>${s.uptime_24h.toFixed(1)} %</td>
+          <td>${s.avg_response_time.toFixed(0)} ms</td>
+          <td style="font-size:.82rem;">${fmtTime(s.last_checked)}</td>
+          <td>
+            <button class="btn-action export" onclick="exportCSV(${s.service_id})" title="Download CSV">📥</button>
+            <button class="btn-action pause" onclick="togglePause(${s.service_id})">⏸ Pause</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Also refresh incidents on each WS update
+      fetchIncidents();
+    }
+
+    // Initial load + fallback polling + WebSocket
     refresh();
-    setInterval(refresh, 30000);
+    setInterval(refresh, 30000);  // fallback if WS disconnects
+    connectWebSocket();
   </script>
 </body>
 

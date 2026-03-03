@@ -99,3 +99,20 @@ class DashboardService(BaseModel):
     uptime_24h: float
     avg_response_time: float
     last_checked: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------------------
+# Incident
+# ---------------------------------------------------------------------------
+
+class IncidentResponse(BaseModel):
+    id: int
+    service_id: int
+    service_name: Optional[str] = None
+    started_at: datetime
+    resolved_at: Optional[datetime] = None
+    duration_s: Optional[int] = None
+    status: str
+
+    class Config:
+        from_attributes = True

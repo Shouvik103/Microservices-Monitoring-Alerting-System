@@ -109,6 +109,59 @@ def save_alert(pool, service_id: int, alert_type: str, message: str):
     finally:
         pool.putconn(conn)
 
+
+def create_incident(pool, service_id: int):
+    """Open a new incident for a service going DOWN."""
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            # Only create if there is no ongoing incident for this service
+            cur.execute(
+                "SELECT id FROM incidents WHERE service_id = %s AND status = 'ongoing'",
+                (service_id,),
+            )
+            if cur.fetchone():
+                return  # already an ongoing incident
+            cur.execute(
+                "INSERT INTO incidents (service_id, started_at, status) VALUES (%s, %s, 'ongoing')",
+                (service_id, datetime.now(timezone.utc)),
+            )
+        conn.commit()
+        logger.info("Incident created for service_id=%s", service_id)
+    except Exception as exc:
+        conn.rollback()
+        logger.error("Failed to create incident: %s", exc)
+    finally:
+        pool.putconn(conn)
+
+
+def resolve_incident(pool, service_id: int):
+    """Resolve the ongoing incident for a service that RECOVERED."""
+    conn = pool.getconn()
+    try:
+        now = datetime.now(timezone.utc)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, started_at FROM incidents WHERE service_id = %s AND status = 'ongoing'",
+                (service_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return  # no ongoing incident
+            incident_id, started_at = row
+            duration = int((now - started_at).total_seconds())
+            cur.execute(
+                "UPDATE incidents SET resolved_at = %s, duration_s = %s, status = 'resolved' WHERE id = %s",
+                (now, duration, incident_id),
+            )
+        conn.commit()
+        logger.info("Incident %s resolved (duration=%ds)", incident_id, duration)
+    except Exception as exc:
+        conn.rollback()
+        logger.error("Failed to resolve incident: %s", exc)
+    finally:
+        pool.putconn(conn)
+
 # ---------------------------------------------------------------------------
 # RabbitMQ helpers
 # ---------------------------------------------------------------------------
@@ -265,8 +318,12 @@ def evaluate_and_alert(data: dict, db_pool):
     send_email_alert(alert_type, service_name, status, response_time_ms, timestamp)
     save_alert(db_pool, service_id, alert_type, message)
 
+    # --- Incident tracking ---
     if alert_type == "DOWN":
+        create_incident(db_pool, service_id)
         last_alert_time[service_id] = now
+    elif alert_type == "RECOVERED":
+        resolve_incident(db_pool, service_id)
 
 # ---------------------------------------------------------------------------
 # Consumer callback

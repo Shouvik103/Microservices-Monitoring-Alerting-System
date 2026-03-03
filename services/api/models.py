@@ -69,3 +69,18 @@ class Alert(Base):
     sent_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     service = relationship("Service", back_populates="alerts")
+
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    service_id = Column(
+        Integer, ForeignKey("services.id", ondelete="CASCADE"), nullable=False
+    )
+    started_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    duration_s = Column(Integer, nullable=True)
+    status = Column(String(10), nullable=False, default="ongoing")
+
+    service = relationship("Service")

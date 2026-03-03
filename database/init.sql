@@ -31,6 +31,15 @@ CREATE TABLE IF NOT EXISTS alerts (
     sent_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS incidents (
+    id           SERIAL PRIMARY KEY,
+    service_id   INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+    started_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    resolved_at  TIMESTAMP WITH TIME ZONE,
+    duration_s   INTEGER,
+    status       VARCHAR(10) NOT NULL DEFAULT 'ongoing' CHECK (status IN ('ongoing', 'resolved'))
+);
+
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_health_checks_service_id ON health_checks(service_id);
 CREATE INDEX IF NOT EXISTS idx_health_checks_checked_at ON health_checks(checked_at DESC);
@@ -39,3 +48,6 @@ CREATE INDEX IF NOT EXISTS idx_alerts_service_id ON alerts(service_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_sent_at ON alerts(sent_at DESC);
 CREATE INDEX IF NOT EXISTS idx_services_is_active ON services(is_active);
 CREATE INDEX IF NOT EXISTS idx_services_tags ON services USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_incidents_service_id ON incidents(service_id);
+CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
+CREATE INDEX IF NOT EXISTS idx_incidents_started_at ON incidents(started_at DESC);
