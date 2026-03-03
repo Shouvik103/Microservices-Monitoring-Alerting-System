@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microservices Monitor</title>
+  <meta name="description" content="Real-time microservices health monitoring dashboard" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* ============================================================
+       Design System
+       ============================================================ */
+    :root {
+      --bg-primary: #0f1117;
+      --bg-card: #1a1d2e;
+      --bg-card-alt: #232740;
+      --text-primary: #e4e6f0;
+      --text-muted: #8b8fa3;
+      --accent: #6c63ff;
+      --accent-light: #8b83ff;
+      --green: #2ecc71;
+      --green-bg: rgba(46, 204, 113, .12);
+      --red: #e74c3c;
+      --red-bg: rgba(231, 76, 60, .12);
+      --yellow: #f1c40f;
+      --yellow-bg: rgba(241, 196, 15, .12);
+      --border: #2a2e45;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, .25);
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: linear-gradient(135deg, #1a1d2e 0%, #232740 100%);
+      padding: 28px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-light), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header .meta {
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+
+    .header .meta .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .4;
+      }
+    }
+
+    /* ---- Layout ---- */
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    /* ---- Summary Cards ---- */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .35);
+    }
+
+    .card .label {
+      font-size: .78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+
+    .card .value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .card.total .value {
+      color: var(--accent-light);
+    }
+
+    .card.up .value {
+      color: var(--green);
+    }
+
+    .card.down .value {
+      color: var(--red);
+    }
+
+    .card.alerts .value {
+      color: var(--yellow);
+    }
+
+    /* ---- Sections ---- */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text-primary);
+    }
+
+    /* ---- Table ---- */
+    .table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px 18px;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--text-muted);
+      background: var(--bg-card-alt);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td {
+      padding: 14px 18px;
+      font-size: .88rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(108, 99, 255, .04);
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+
+    .badge.up {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .badge.down {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .badge.slow {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+    }
+
+    .badge.na {
+      background: rgba(139, 143, 163, .1);
+      color: var(--text-muted);
+    }
+
+    /* Tag badges */
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: .68rem;
+      font-weight: 500;
+      background: rgba(108, 99, 255, .12);
+      color: var(--accent-light);
+      margin-right: 4px;
+      margin-bottom: 2px;
+      letter-spacing: .2px;
+    }
+
+    /* Tag filter bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .filter-bar label {
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+
+    .filter-bar select {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: .84rem;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .filter-bar select:focus {
+      border-color: var(--accent);
+    }
+
+    /* Pause/Resume buttons */
+    .btn-action {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 6px;
+      border: none;
+      font-size: .72rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      transition: opacity .15s ease;
+    }
+    .btn-action:hover { opacity: .85; }
+    .btn-action.pause  { background: var(--yellow-bg); color: var(--yellow); }
+    .btn-action.resume { background: var(--green-bg);  color: var(--green);  }
+    .btn-action:disabled { opacity: .5; cursor: not-allowed; }
+    .badge.paused { background: rgba(241,196,15,.12); color: var(--yellow); }
+
+    /* Show paused toggle */
+    .toggle-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    .toggle-bar label { font-size: .82rem; color: var(--text-muted); cursor: pointer; }
+    .toggle-bar input { cursor: pointer; }
+
+    /* ---- Two-col bottom ---- */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ---- Chart ---- */
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .chart-card canvas {
+      width: 100% !important;
+    }
+
+    /* ---- Alerts Feed ---- */
+    .alerts-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      max-height: 430px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: .84rem;
+      line-height: 1.5;
+    }
+
+    .alert-item.DOWN {
+      background: var(--red-bg);
+      border-left: 3px solid var(--red);
+    }
+
+    .alert-item.SLOW {
+      background: var(--yellow-bg);
+      border-left: 3px solid var(--yellow);
+    }
+
+    .alert-item.RECOVERED {
+      background: var(--green-bg);
+      border-left: 3px solid var(--green);
+    }
+
+    .alert-item .alert-header {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .alert-item .alert-time {
+      font-size: .74rem;
+      color: var(--text-muted);
+    }
+
+    /* ---- Empty state ---- */
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    /* ---- Scrollbar ---- */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>🔍 Microservices Monitor</h1>
+    <div class="meta"><span class="dot"></span>Auto-refresh every 30 s</div>
+  </header>
+
+  <div class="container">
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="card total">
+        <div class="label">Total Services</div>
+        <div class="value" id="total-count">—</div>
+      </div>
+      <div class="card up">
+        <div class="label">Services UP</div>
+        <div class="value" id="up-count">—</div>
+      </div>
+      <div class="card down">
+        <div class="label">Services DOWN</div>
+        <div class="value" id="down-count">—</div>
+      </div>
+      <div class="card alerts">
+        <div class="label">Alerts Today</div>
+        <div class="value" id="alerts-count">—</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <h2 class="section-title" style="margin-bottom:0">Registered Services</h2>
+      <label for="tag-filter">Filter by tag:</label>
+      <select id="tag-filter" onchange="refresh()">
+        <option value="">All Tags</option>
+      </select>
+      <div class="toggle-bar">
+        <input type="checkbox" id="show-paused" onchange="refresh()">
+        <label for="show-paused">Show paused</label>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Tags</th>
+            <th>URL</th>
+            <th>Status</th>
+            <th>Uptime 24 h</th>
+            <th>Avg Response</th>
+            <th>Last Checked</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="services-tbody">
+          <tr>
+            <td colspan="8" class="empty">Loading …</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bottom grid: Chart + Alerts -->
+    <div class="bottom-grid">
+      <div class="chart-card">
+        <h2 class="section-title">Response Time (ms)</h2>
+        <canvas id="responseChart" height="220"></canvas>
+      </div>
+      <div class="alerts-card">
+        <h2 class="section-title">Recent Alerts</h2>
+        <div id="alerts-feed">
+          <div class="empty">Loading …</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       JavaScript
+       ============================================================ -->
+  <script>
+    // Use the api service hostname. When served via docker-compose nginx
+    // the API is accessible at the same host on port 8000.
+    const API_BASE = (window.location.port === '3000' || window.location.port === '3001')
+      ? `${window.location.protocol}//${window.location.hostname}:8000`
+      : '/api';
+
+    let responseChart = null;
+    let allTags = new Set();
+
+    // ---- Helpers ----
+    function badgeClass(status) {
+      if (!status) return 'na';
+      if (status === 'UP') return 'up';
+      return 'down';
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        + ' ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    // ---- Fetch Dashboard ----
+    async function fetchDashboard() {
+      try {
+        const selectedTag = document.getElementById('tag-filter').value;
+        const showPaused = document.getElementById('show-paused').checked;
+
+        // Fetch active services from dashboard
+        const dashUrl = selectedTag
+          ? `${API_BASE}/dashboard?tag=${encodeURIComponent(selectedTag)}`
+          : `${API_BASE}/dashboard`;
+        const res = await fetch(dashUrl);
+        if (!res.ok) throw new Error(res.statusText);
+        const dashData = await res.json();
+
+        // Fetch all services list (for paused ones)
+        let pausedServices = [];
+        if (showPaused) {
+          const svcUrl = selectedTag
+            ? `${API_BASE}/services?tag=${encodeURIComponent(selectedTag)}`
+            : `${API_BASE}/services`;
+          const svcRes = await fetch(svcUrl);
+          if (svcRes.ok) {
+            const allSvc = await svcRes.json();
+            pausedServices = allSvc.filter(s => !s.is_active);
+          }
+        }
+
+        // Collect all tags for filter dropdown
+        dashData.forEach(s => (s.tags || []).forEach(t => allTags.add(t)));
+        pausedServices.forEach(s => (s.tags || []).forEach(t => allTags.add(t)));
+        updateTagFilter();
+
+        let up = 0, down = 0;
+        dashData.forEach(s => {
+          if (s.current_status === 'UP') up++;
+          else if (s.current_status === 'DOWN') down++;
+        });
+
+        document.getElementById('total-count').textContent = dashData.length + pausedServices.length;
+        document.getElementById('up-count').textContent = up;
+        document.getElementById('down-count').textContent = down;
+
+        // Table
+        const tbody = document.getElementById('services-tbody');
+        const totalRows = dashData.length + pausedServices.length;
+        if (totalRows === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty">No services registered</td></tr>';
+          return dashData;
+        }
+
+        // Active services rows
+        let rows = dashData.map(s => `
+          <tr>
+            <td><strong>${esc(s.service_name)}</strong></td>
+            <td>${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
+            <td style="color:var(--text-muted); font-size:.82rem;">${esc(s.url)}</td>
+            <td><span class="badge ${badgeClass(s.current_status)}">${s.current_status || 'N/A'}</span></td>
+            <td>${s.uptime_24h.toFixed(1)} %</td>
+            <td>${s.avg_response_time.toFixed(0)} ms</td>
+            <td style="font-size:.82rem;">${fmtTime(s.last_checked)}</td>
+            <td><button class="btn-action pause" onclick="togglePause(${s.service_id})">⏸ Pause</button></td>
+          </tr>
+        `).join('');
+
+        // Paused services rows
+        rows += pausedServices.map(s => `
+          <tr style="opacity:.65">
+            <td><strong>${esc(s.name)}</strong></td>
+            <td>${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
+            <td style="color:var(--text-muted); font-size:.82rem;">${esc(s.url)}</td>
+            <td><span class="badge paused">PAUSED</span></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><button class="btn-action resume" onclick="toggleResume(${s.id})">▶ Resume</button></td>
+          </tr>
+        `).join('');
+
+        tbody.innerHTML = rows;
+
+        return dashData;
+      } catch (err) {
+        console.error('Dashboard fetch failed:', err);
+        return [];
+      }
+    }
+
+    // ---- Pause / Resume ----
+    async function togglePause(serviceId) {
+      try {
+        const res = await fetch(`${API_BASE}/services/${serviceId}/pause`, { method: 'PUT' });
+        if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
+        await refresh();
+      } catch (err) { console.error('Pause failed:', err); }
+    }
+
+    async function toggleResume(serviceId) {
+      try {
+        const res = await fetch(`${API_BASE}/services/${serviceId}/resume`, { method: 'PUT' });
+        if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
+        await refresh();
+      } catch (err) { console.error('Resume failed:', err); }
+    }
+
+    function updateTagFilter() {
+      const sel = document.getElementById('tag-filter');
+      const current = sel.value;
+      const sorted = [...allTags].sort();
+      // Only update options if tags changed
+      const existing = [...sel.options].slice(1).map(o => o.value);
+      if (JSON.stringify(existing) === JSON.stringify(sorted)) return;
+      sel.innerHTML = '<option value="">All Tags</option>' +
+        sorted.map(t => `<option value="${esc(t)}"${t === current ? ' selected' : ''}>${esc(t)}</option>`).join('');
+    }
+
+    // ---- Fetch Alerts ----
+    async function fetchAlerts() {
+      try {
+        const res = await fetch(`${API_BASE}/alerts?limit=10`);
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+
+        // Today count
+        const today = new Date().toISOString().slice(0, 10);
+        const todayAlerts = data.filter(a => a.sent_at && a.sent_at.startsWith(today));
+        document.getElementById('alerts-count').textContent = todayAlerts.length;
+
+        const feed = document.getElementById('alerts-feed');
+        if (data.length === 0) {
+          feed.innerHTML = '<div class="empty">No alerts yet</div>';
+          return;
+        }
+
+        const emoji = { DOWN: '🚨', SLOW: '⚠️', RECOVERED: '✅' };
+        feed.innerHTML = data.map(a => `
+          <div class="alert-item ${a.alert_type}">
+            <div class="alert-header">${emoji[a.alert_type] || ''} ${a.alert_type}</div>
+            <div>${esc(a.message)}</div>
+            <div class="alert-time">${fmtTime(a.sent_at)}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Alerts fetch failed:', err);
+      }
+    }
+
+    // ---- Response Time Chart ----
+    async function fetchChartData(services) {
+      if (!services || services.length === 0) return;
+
+      // Pick first service that has data
+      const svc = services.find(s => s.current_status) || services[0];
+      if (!svc) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/services/${svc.service_id}/health?limit=30&hours=6`);
+        if (!res.ok) return;
+        const checks = await res.json();
+
+        const sorted = checks.slice().reverse();
+        const labels = sorted.map(c => {
+          const d = new Date(c.checked_at);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        });
+        const values = sorted.map(c => c.response_time_ms || 0);
+
+        if (responseChart) responseChart.destroy();
+
+        const ctx = document.getElementById('responseChart').getContext('2d');
+        responseChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: `${svc.service_name} — Response Time (ms)`,
+              data: values,
+              borderColor: '#6c63ff',
+              backgroundColor: 'rgba(108,99,255,.1)',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#6c63ff',
+              tension: .35,
+              fill: true,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: { color: '#8b8fa3', font: { size: 12 } }
+              }
+            },
+            scales: {
+              x: {
+                ticks: { color: '#8b8fa3', maxTicksLimit: 10 },
+                grid: { color: 'rgba(42,46,69,.5)' }
+              },
+              y: {
+                ticks: { color: '#8b8fa3' },
+                grid: { color: 'rgba(42,46,69,.5)' },
+                beginAtZero: true,
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Chart data fetch failed:', err);
+      }
+    }
+
+    // ---- Escape HTML ----
+    function esc(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ---- Refresh ----
+    async function refresh() {
+      const services = await fetchDashboard();
+      await fetchAlerts();
+      await fetchChartData(services);
+    }
+
+    // Initial load + 30 s auto-refresh
+    refresh();
+    setInterval(refresh, 30000);
+  </script>
+</body>
+
+</html>

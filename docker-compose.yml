@@ -1,0 +1,120 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: monitor-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - monitor-net
+
+  postgres:
+    image: postgres:15
+    container_name: monitor-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - monitor-net
+
+  poller:
+    build:
+      context: ./services/poller
+    container_name: monitor-poller
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-net
+
+  db-writer:
+    build:
+      context: ./services/db-writer
+    container_name: monitor-db-writer
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-net
+
+  alerter:
+    build:
+      context: ./services/alerter
+    container_name: monitor-alerter
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-net
+
+  api:
+    build:
+      context: ./services/api
+    container_name: monitor-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-net
+
+  frontend:
+    image: nginx:alpine
+    container_name: monitor-frontend
+    ports:
+      - "3001:80"
+    volumes:
+      - ./frontend/index.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - api
+    networks:
+      - monitor-net
+
+volumes:
+  pgdata:
+
+networks:
+  monitor-net:
+    driver: bridge
