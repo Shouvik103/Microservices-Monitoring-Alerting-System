@@ -59,6 +59,7 @@ logger = logging.getLogger("alerter")
 # ---------------------------------------------------------------------------
 last_known_status: dict[int, str] = {}       # service_id → "UP" | "DOWN"
 last_alert_time: dict[int, float] = {}       # service_id → epoch seconds
+custom_rule_last_alert: dict[int, float] = {}  # rule_id → epoch seconds
 
 # ---------------------------------------------------------------------------
 # Database helpers
@@ -159,6 +160,36 @@ def resolve_incident(pool, service_id: int):
     except Exception as exc:
         conn.rollback()
         logger.error("Failed to resolve incident: %s", exc)
+    finally:
+        pool.putconn(conn)
+
+
+def fetch_alert_rules_for_service(pool, service_id: int) -> list:
+    """Fetch active custom alert rules for a given service."""
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, metric, operator, threshold, severity, cooldown_s, description "
+                "FROM alert_rules WHERE service_id = %s AND is_active = TRUE",
+                (service_id,),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "metric": r[1],
+                    "operator": r[2],
+                    "threshold": r[3],
+                    "severity": r[4],
+                    "cooldown_s": r[5],
+                    "description": r[6],
+                }
+                for r in rows
+            ]
+    except Exception as exc:
+        logger.error("Failed to fetch alert rules: %s", exc)
+        return []
     finally:
         pool.putconn(conn)
 
@@ -276,10 +307,30 @@ def send_email_alert(alert_type: str, service_name: str,
 # Alert evaluation
 # ---------------------------------------------------------------------------
 
+def _compare(value, operator: str, threshold: float) -> bool:
+    """Evaluate a comparison expression."""
+    ops = {
+        ">": lambda v, t: v > t,
+        "<": lambda v, t: v < t,
+        ">=": lambda v, t: v >= t,
+        "<=": lambda v, t: v <= t,
+        "==": lambda v, t: v == t,
+        "!=": lambda v, t: v != t,
+    }
+    fn = ops.get(operator)
+    if fn is None:
+        return False
+    try:
+        return fn(float(value), float(threshold))
+    except (TypeError, ValueError):
+        return False
+
+
 def evaluate_and_alert(data: dict, db_pool):
     """
     Decide whether an alert should fire and, if so, dispatch it
-    through all configured channels.
+    through all configured channels.  Also evaluates custom
+    per-service alert rules from the database.
     """
     service_id = data["service_id"]
     service_name = data["service_name"]
@@ -291,7 +342,7 @@ def evaluate_and_alert(data: dict, db_pool):
     previous_status = last_known_status.get(service_id)
     alert_type = None
 
-    # --- Determine alert type ---
+    # --- Determine alert type (built-in rules) ---
     if status == "UP" and previous_status == "DOWN":
         alert_type = "RECOVERED"
     elif status == "DOWN":
@@ -304,26 +355,61 @@ def evaluate_and_alert(data: dict, db_pool):
     # --- Update in-memory state ---
     last_known_status[service_id] = status
 
-    if alert_type is None:
-        return
+    if alert_type is not None:
+        message = (
+            f"[{alert_type}] {service_name} — status={status}, "
+            f"response_time={response_time_ms:.0f}ms, time={timestamp}"
+        )
+        logger.info("Alert triggered: %s", message)
 
-    message = (
-        f"[{alert_type}] {service_name} — status={status}, "
-        f"response_time={response_time_ms:.0f}ms, time={timestamp}"
-    )
-    logger.info("Alert triggered: %s", message)
+        send_slack_alert(alert_type, service_name, status, response_time_ms, timestamp)
+        send_email_alert(alert_type, service_name, status, response_time_ms, timestamp)
+        save_alert(db_pool, service_id, alert_type, message)
 
-    # --- Dispatch ---
-    send_slack_alert(alert_type, service_name, status, response_time_ms, timestamp)
-    send_email_alert(alert_type, service_name, status, response_time_ms, timestamp)
-    save_alert(db_pool, service_id, alert_type, message)
+        if alert_type == "DOWN":
+            create_incident(db_pool, service_id)
+            last_alert_time[service_id] = now
+        elif alert_type == "RECOVERED":
+            resolve_incident(db_pool, service_id)
 
-    # --- Incident tracking ---
-    if alert_type == "DOWN":
-        create_incident(db_pool, service_id)
-        last_alert_time[service_id] = now
-    elif alert_type == "RECOVERED":
-        resolve_incident(db_pool, service_id)
+    # --- Evaluate custom per-service alert rules ---
+    custom_rules = fetch_alert_rules_for_service(db_pool, service_id)
+    status_numeric = 0.0 if status == "DOWN" else 1.0
+    status_code = data.get("status_code") or 0
+
+    metric_values = {
+        "response_time_ms": response_time_ms,
+        "status_code": float(status_code),
+        "status": status_numeric,
+    }
+
+    for rule in custom_rules:
+        rule_id = rule["id"]
+        metric_val = metric_values.get(rule["metric"])
+        if metric_val is None:
+            continue
+
+        if not _compare(metric_val, rule["operator"], rule["threshold"]):
+            continue
+
+        # Cooldown check
+        last_rule_alert = custom_rule_last_alert.get(rule_id, 0)
+        if now - last_rule_alert < rule["cooldown_s"]:
+            continue
+
+        severity = rule["severity"].upper()
+        desc = rule["description"] or f"{rule['metric']} {rule['operator']} {rule['threshold']}"
+        custom_message = (
+            f"[CUSTOM-{severity}] {service_name} — rule: {desc}, "
+            f"actual {rule['metric']}={metric_val}, time={timestamp}"
+        )
+        logger.info("Custom alert rule %d triggered: %s", rule_id, custom_message)
+
+        alert_type_custom = "SLOW" if rule["metric"] == "response_time_ms" else "DOWN"
+        send_slack_alert(alert_type_custom, service_name, status, response_time_ms, timestamp)
+        send_email_alert(alert_type_custom, service_name, status, response_time_ms, timestamp)
+        save_alert(db_pool, service_id, alert_type_custom, custom_message)
+        custom_rule_last_alert[rule_id] = now
 
 # ---------------------------------------------------------------------------
 # Consumer callback

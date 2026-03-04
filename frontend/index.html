@@ -350,10 +350,15 @@
       border-radius: var(--radius);
       padding: 22px 24px;
       box-shadow: var(--shadow);
+      position: relative;
+      min-height: 260px;
+      max-height: 340px;
+      overflow: hidden;
     }
 
     .chart-card canvas {
       width: 100% !important;
+      max-height: 260px !important;
     }
 
     /* ---- Alerts Feed ---- */
@@ -473,15 +478,314 @@
     .ws-indicator.connected {
       background: var(--green);
     }
+
+    /* Method badges */
+    .method-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: .7rem;
+      font-weight: 700;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+    }
+
+    .method-badge.get {
+      background: rgba(46, 204, 113, .12);
+      color: var(--green);
+    }
+
+    .method-badge.post {
+      background: rgba(52, 152, 219, .15);
+      color: #3498db;
+    }
+
+    .method-badge.head {
+      background: rgba(155, 89, 182, .15);
+      color: #9b59b6;
+    }
+
+    .method-badge.tcp {
+      background: rgba(241, 196, 15, .12);
+      color: var(--yellow);
+    }
+
+    /* ---- Login Overlay ---- */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-overlay.hidden {
+      display: none;
+    }
+
+    .login-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 380px;
+      box-shadow: var(--shadow);
+    }
+
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--accent-light), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .login-box .field {
+      margin-bottom: 16px;
+    }
+
+    .login-box label {
+      display: block;
+      font-size: .82rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: .9rem;
+      outline: none;
+    }
+
+    .login-box input:focus {
+      border-color: var(--accent);
+    }
+
+    .login-box .login-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity .15s;
+    }
+
+    .login-box .login-btn:hover {
+      opacity: .9;
+    }
+
+    .login-box .login-error {
+      color: var(--red);
+      font-size: .82rem;
+      text-align: center;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+
+    .header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header .user-info .username-label {
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+
+    .header .user-info .logout-btn {
+      padding: 5px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: .76rem;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+
+    .header .user-info .logout-btn:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ---- Alert Rules Section ---- */
+    .rules-section {
+      margin-top: 28px;
+    }
+
+    .rules-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .btn-primary {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+
+    .btn-primary:hover {
+      opacity: .88;
+    }
+
+    .btn-danger {
+      padding: 4px 12px;
+      border: none;
+      border-radius: 6px;
+      background: var(--red-bg);
+      color: var(--red);
+      font-size: .72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      opacity: .8;
+    }
+
+    .badge.critical {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .badge.warning {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+    }
+
+    .badge.info {
+      background: rgba(52, 152, 219, .15);
+      color: #3498db;
+    }
+
+    /* ---- Modal ---- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      width: 440px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-box h3 {
+      margin-bottom: 18px;
+      font-size: 1.1rem;
+    }
+
+    .modal-box .field {
+      margin-bottom: 14px;
+    }
+
+    .modal-box label {
+      display: block;
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .modal-box input,
+    .modal-box select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: .86rem;
+      outline: none;
+    }
+
+    .modal-box input:focus,
+    .modal-box select:focus {
+      border-color: var(--accent);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn-secondary {
+      padding: 8px 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: .82rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 
 <body>
 
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-box">
+      <h2>🔍 Monitor Login</h2>
+      <div class="field">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" placeholder="admin" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" />
+      </div>
+      <button class="login-btn" onclick="doLogin()">Sign In</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="header">
     <h1>🔍 Microservices Monitor</h1>
-    <div class="meta"><span class="ws-indicator" id="ws-dot"></span><span id="refresh-label">Connecting …</span></div>
+    <div class="meta">
+      <span class="ws-indicator" id="ws-dot"></span>
+      <span id="refresh-label">Connecting …</span>
+    </div>
+    <div class="user-info" id="user-info" style="display:none">
+      <span class="username-label" id="username-label"></span>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
   </header>
 
   <div class="container">
@@ -524,6 +828,7 @@
             <th>Name</th>
             <th>Tags</th>
             <th>URL</th>
+            <th>Method</th>
             <th>Status</th>
             <th>Uptime 24 h</th>
             <th>Avg Response</th>
@@ -533,7 +838,7 @@
         </thead>
         <tbody id="services-tbody">
           <tr>
-            <td colspan="8" class="empty">Loading …</td>
+            <td colspan="9" class="empty">Loading …</td>
           </tr>
         </tbody>
       </table>
@@ -543,7 +848,9 @@
     <div class="bottom-grid" style="grid-template-columns: 1fr 1fr 1fr;">
       <div class="chart-card">
         <h2 class="section-title">Response Time (ms)</h2>
-        <canvas id="responseChart" height="220"></canvas>
+        <div style="position:relative;height:250px;">
+          <canvas id="responseChart"></canvas>
+        </div>
       </div>
       <div class="alerts-card">
         <h2 class="section-title">Recent Alerts</h2>
@@ -556,6 +863,87 @@
         <div id="incidents-feed">
           <div class="empty">Loading …</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Alert Rules Section -->
+    <div class="rules-section" id="rules-section">
+      <div class="rules-header">
+        <h2 class="section-title" style="margin-bottom:0">Custom Alert Rules</h2>
+        <button class="btn-primary" onclick="openRuleModal()">+ New Rule</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Metric</th>
+              <th>Condition</th>
+              <th>Severity</th>
+              <th>Cooldown</th>
+              <th>Description</th>
+              <th>Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rules-tbody">
+            <tr><td colspan="8" class="empty">Loading …</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Rule Modal -->
+  <div class="modal-overlay hidden" id="rule-modal">
+    <div class="modal-box">
+      <h3 id="rule-modal-title">Create Alert Rule</h3>
+      <div class="field">
+        <label>Service</label>
+        <select id="rule-service"></select>
+      </div>
+      <div class="field">
+        <label>Metric</label>
+        <select id="rule-metric">
+          <option value="response_time_ms">Response Time (ms)</option>
+          <option value="status_code">Status Code</option>
+          <option value="status">Status (1=UP, 0=DOWN)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Operator</label>
+        <select id="rule-operator">
+          <option value=">">&gt;</option>
+          <option value="<">&lt;</option>
+          <option value=">=">&gt;=</option>
+          <option value="<=">&lt;=</option>
+          <option value="==">==</option>
+          <option value="!=">!=</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Threshold</label>
+        <input type="number" id="rule-threshold" placeholder="e.g. 500" step="any" />
+      </div>
+      <div class="field">
+        <label>Severity</label>
+        <select id="rule-severity">
+          <option value="warning">Warning</option>
+          <option value="critical">Critical</option>
+          <option value="info">Info</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cooldown (seconds)</label>
+        <input type="number" id="rule-cooldown" value="300" min="30" />
+      </div>
+      <div class="field">
+        <label>Description (optional)</label>
+        <input type="text" id="rule-description" placeholder="e.g. Alert if response > 500ms" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeRuleModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveRule()">Save Rule</button>
       </div>
     </div>
   </div>
@@ -572,6 +960,87 @@
 
     let responseChart = null;
     let allTags = new Set();
+    let cachedServices = []; // for rule modal dropdown
+
+    // ================================================================
+    // JWT Token Management
+    // ================================================================
+    function getToken() { return localStorage.getItem('jwt_token'); }
+    function setToken(t) { localStorage.setItem('jwt_token', t); }
+    function clearToken() { localStorage.removeItem('jwt_token'); localStorage.removeItem('jwt_user'); localStorage.removeItem('jwt_role'); }
+    function getUser() { return localStorage.getItem('jwt_user') || ''; }
+    function getRole() { return localStorage.getItem('jwt_role') || 'viewer'; }
+
+    function authHeaders() {
+      const t = getToken();
+      return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    }
+
+    function authFetch(url, opts = {}) {
+      opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+      return fetch(url, opts).then(r => {
+        if (r.status === 401) { clearToken(); showLogin(); throw new Error('Unauthorized'); }
+        return r;
+      });
+    }
+
+    // ================================================================
+    // Login / Logout
+    // ================================================================
+    function showLogin() {
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.getElementById('user-info').style.display = 'none';
+    }
+
+    function hideLogin() {
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('user-info').style.display = 'flex';
+      document.getElementById('username-label').textContent = `👤 ${getUser()} (${getRole()})`;
+    }
+
+    async function doLogin() {
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errEl = document.getElementById('login-error');
+      errEl.textContent = '';
+      if (!username || !password) { errEl.textContent = 'Enter username and password'; return; }
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        if (!res.ok) {
+          const e = await res.json();
+          errEl.textContent = e.detail || 'Login failed';
+          return;
+        }
+        const data = await res.json();
+        setToken(data.access_token);
+        localStorage.setItem('jwt_user', data.username);
+        localStorage.setItem('jwt_role', data.role);
+        hideLogin();
+        refresh();
+        setInterval(refresh, 30000);
+        connectWebSocket();
+      } catch (err) {
+        console.error('Login error:', err);
+        errEl.textContent = 'Network error: ' + err.message;
+      }
+    }
+
+    function doLogout() {
+      clearToken();
+      localStorage.removeItem('jwt_user');
+      localStorage.removeItem('jwt_role');
+      location.reload();
+    }
+
+    // Enter key to login
+    document.getElementById('login-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
 
     // ---- Helpers ----
     function badgeClass(status) {
@@ -597,7 +1066,7 @@
         const dashUrl = selectedTag
           ? `${API_BASE}/dashboard?tag=${encodeURIComponent(selectedTag)}`
           : `${API_BASE}/dashboard`;
-        const res = await fetch(dashUrl);
+        const res = await authFetch(dashUrl);
         if (!res.ok) throw new Error(res.statusText);
         const dashData = await res.json();
 
@@ -607,7 +1076,7 @@
           const svcUrl = selectedTag
             ? `${API_BASE}/services?tag=${encodeURIComponent(selectedTag)}`
             : `${API_BASE}/services`;
-          const svcRes = await fetch(svcUrl);
+          const svcRes = await authFetch(svcUrl);
           if (svcRes.ok) {
             const allSvc = await svcRes.json();
             pausedServices = allSvc.filter(s => !s.is_active);
@@ -633,7 +1102,7 @@
         const tbody = document.getElementById('services-tbody');
         const totalRows = dashData.length + pausedServices.length;
         if (totalRows === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" class="empty">No services registered</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9" class="empty">No services registered</td></tr>';
           return dashData;
         }
 
@@ -643,6 +1112,7 @@
             <td><strong>${esc(s.service_name)}</strong></td>
             <td>${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
             <td style="color:var(--text-muted); font-size:.82rem;">${esc(s.url)}</td>
+            <td><span class="method-badge ${(s.check_method || 'GET').toLowerCase()}">${esc(s.check_method || 'GET')}</span></td>
             <td><span class="badge ${badgeClass(s.current_status)}">${s.current_status || 'N/A'}</span></td>
             <td>${s.uptime_24h.toFixed(1)} %</td>
             <td>${s.avg_response_time.toFixed(0)} ms</td>
@@ -660,6 +1130,7 @@
             <td><strong>${esc(s.name)}</strong></td>
             <td>${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
             <td style="color:var(--text-muted); font-size:.82rem;">${esc(s.url)}</td>
+            <td><span class="method-badge ${(s.check_method || 'GET').toLowerCase()}">${esc(s.check_method || 'GET')}</span></td>
             <td><span class="badge paused">PAUSED</span></td>
             <td>—</td>
             <td>—</td>
@@ -680,7 +1151,7 @@
     // ---- Pause / Resume ----
     async function togglePause(serviceId) {
       try {
-        const res = await fetch(`${API_BASE}/services/${serviceId}/pause`, { method: 'PUT' });
+        const res = await authFetch(`${API_BASE}/services/${serviceId}/pause`, { method: 'PUT' });
         if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
         await refresh();
       } catch (err) { console.error('Pause failed:', err); }
@@ -688,7 +1159,7 @@
 
     async function toggleResume(serviceId) {
       try {
-        const res = await fetch(`${API_BASE}/services/${serviceId}/resume`, { method: 'PUT' });
+        const res = await authFetch(`${API_BASE}/services/${serviceId}/resume`, { method: 'PUT' });
         if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
         await refresh();
       } catch (err) { console.error('Resume failed:', err); }
@@ -696,8 +1167,15 @@
 
     // ---- Export CSV ----
     function exportCSV(serviceId) {
-      const url = `${API_BASE}/services/${serviceId}/export?format=csv&hours=24`;
-      window.open(url, '_blank');
+      // Download CSV via authFetch and create blob download
+      authFetch(`${API_BASE}/services/${serviceId}/export?format=csv&hours=24`)
+        .then(r => r.blob())
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `service_${serviceId}_health.csv`;
+          a.click(); URL.revokeObjectURL(url);
+        }).catch(err => console.error('Export failed:', err));
     }
 
     function updateTagFilter() {
@@ -714,7 +1192,7 @@
     // ---- Fetch Alerts ----
     async function fetchAlerts() {
       try {
-        const res = await fetch(`${API_BASE}/alerts?limit=10`);
+        const res = await authFetch(`${API_BASE}/alerts?limit=10`);
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
 
@@ -751,7 +1229,7 @@
       if (!svc) return;
 
       try {
-        const res = await fetch(`${API_BASE}/services/${svc.service_id}/health?limit=30&hours=6`);
+        const res = await authFetch(`${API_BASE}/services/${svc.service_id}/health?limit=30&hours=6`);
         if (!res.ok) return;
         const checks = await res.json();
 
@@ -762,71 +1240,185 @@
         });
         const values = sorted.map(c => c.response_time_ms || 0);
 
-        if (responseChart) responseChart.destroy();
-
-        const ctx = document.getElementById('responseChart').getContext('2d');
-        responseChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: `${svc.service_name} — Response Time (ms)`,
-              data: values,
-              borderColor: '#6c63ff',
-              backgroundColor: 'rgba(108,99,255,.1)',
-              borderWidth: 2,
-              pointRadius: 3,
-              pointBackgroundColor: '#6c63ff',
-              tension: .35,
-              fill: true,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                labels: { color: '#8b8fa3', font: { size: 12 } }
-              }
+        // Update existing chart data in-place (avoids destroy/recreate flicker)
+        if (responseChart) {
+          responseChart.data.labels = labels;
+          responseChart.data.datasets[0].data = values;
+          responseChart.data.datasets[0].label = `${svc.service_name} — Response Time (ms)`;
+          responseChart.update('none');  // 'none' disables animation for speed
+        } else {
+          const ctx = document.getElementById('responseChart').getContext('2d');
+          responseChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [{
+                label: `${svc.service_name} — Response Time (ms)`,
+                data: values,
+                borderColor: '#6c63ff',
+                backgroundColor: 'rgba(108,99,255,.1)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: '#6c63ff',
+                tension: .35,
+                fill: true,
+              }]
             },
-            scales: {
-              x: {
-                ticks: { color: '#8b8fa3', maxTicksLimit: 10 },
-                grid: { color: 'rgba(42,46,69,.5)' }
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 300 },
+              plugins: {
+                legend: {
+                  labels: { color: '#8b8fa3', font: { size: 12 } }
+                }
               },
-              y: {
-                ticks: { color: '#8b8fa3' },
-                grid: { color: 'rgba(42,46,69,.5)' },
-                beginAtZero: true,
+              scales: {
+                x: {
+                  ticks: { color: '#8b8fa3', maxTicksLimit: 10 },
+                  grid: { color: 'rgba(42,46,69,.5)' }
+                },
+                y: {
+                  ticks: { color: '#8b8fa3' },
+                  grid: { color: 'rgba(42,46,69,.5)' },
+                  beginAtZero: true,
+                }
               }
             }
-          }
-        });
+          });
+        }
       } catch (err) {
         console.error('Chart data fetch failed:', err);
       }
     }
 
     // ---- Escape HTML ----
+    const _escMap = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
     function esc(str) {
       if (!str) return '';
-      const d = document.createElement('div');
-      d.textContent = str;
-      return d.innerHTML;
+      return String(str).replace(/[&<>"']/g, c => _escMap[c]);
     }
 
-    // ---- Refresh ----
+    // ---- Refresh (parallel fetches) ----
+    let _refreshRunning = false;
     async function refresh() {
-      const services = await fetchDashboard();
-      await fetchAlerts();
-      await fetchIncidents();
-      await fetchChartData(services);
+      if (_refreshRunning) return;   // prevent overlapping refreshes
+      _refreshRunning = true;
+      try {
+        const [services] = await Promise.all([
+          fetchDashboard(),
+          fetchAlerts(),
+          fetchIncidents(),
+          fetchAlertRules(),
+        ]);
+        cachedServices = services || [];
+        await fetchChartData(services);  // needs services result
+      } finally {
+        _refreshRunning = false;
+      }
+    }
+
+    // ================================================================
+    // Alert Rules CRUD
+    // ================================================================
+    async function fetchAlertRules() {
+      try {
+        const res = await authFetch(`${API_BASE}/alert-rules`);
+        if (!res.ok) return;
+        const rules = await res.json();
+        const tbody = document.getElementById('rules-tbody');
+        if (rules.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty">No custom alert rules</td></tr>';
+          return;
+        }
+        tbody.innerHTML = rules.map(r => `
+          <tr>
+            <td><strong>${esc(r.service_name || 'Service #' + r.service_id)}</strong></td>
+            <td style="font-family:monospace;font-size:.82rem;">${esc(r.metric)}</td>
+            <td style="font-family:monospace;font-size:.9rem;">${esc(r.operator)} ${r.threshold}</td>
+            <td><span class="badge ${r.severity}">${r.severity.toUpperCase()}</span></td>
+            <td>${r.cooldown_s}s</td>
+            <td style="color:var(--text-muted);font-size:.82rem;">${esc(r.description || '—')}</td>
+            <td><span class="badge ${r.is_active ? 'up' : 'na'}">${r.is_active ? 'ON' : 'OFF'}</span></td>
+            <td>
+              <button class="btn-action pause" onclick="toggleRule(${r.id}, ${!r.is_active})">${r.is_active ? '⏸' : '▶'}</button>
+              <button class="btn-danger" onclick="deleteRule(${r.id})">🗑</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Alert rules fetch failed:', err);
+      }
+    }
+
+    function openRuleModal() {
+      // Populate service dropdown
+      const sel = document.getElementById('rule-service');
+      sel.innerHTML = cachedServices.map(s =>
+        `<option value="${s.service_id}">${esc(s.service_name)}</option>`
+      ).join('');
+      // If no cached services, also fetch
+      if (cachedServices.length === 0) {
+        authFetch(`${API_BASE}/services`).then(r => r.json()).then(svcs => {
+          sel.innerHTML = svcs.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+        });
+      }
+      document.getElementById('rule-threshold').value = '';
+      document.getElementById('rule-description').value = '';
+      document.getElementById('rule-cooldown').value = '300';
+      document.getElementById('rule-modal').classList.remove('hidden');
+    }
+
+    function closeRuleModal() {
+      document.getElementById('rule-modal').classList.add('hidden');
+    }
+
+    async function saveRule() {
+      const body = {
+        service_id: parseInt(document.getElementById('rule-service').value),
+        metric: document.getElementById('rule-metric').value,
+        operator: document.getElementById('rule-operator').value,
+        threshold: parseFloat(document.getElementById('rule-threshold').value),
+        severity: document.getElementById('rule-severity').value,
+        cooldown_s: parseInt(document.getElementById('rule-cooldown').value) || 300,
+        description: document.getElementById('rule-description').value || null,
+      };
+      if (isNaN(body.threshold)) { alert('Enter a valid threshold'); return; }
+      try {
+        const res = await authFetch(`${API_BASE}/alert-rules`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
+        closeRuleModal();
+        await fetchAlertRules();
+      } catch (err) { console.error('Save rule failed:', err); }
+    }
+
+    async function toggleRule(ruleId, newActive) {
+      try {
+        const res = await authFetch(`${API_BASE}/alert-rules/${ruleId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ is_active: newActive }),
+        });
+        if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
+        await fetchAlertRules();
+      } catch (err) { console.error('Toggle rule failed:', err); }
+    }
+
+    async function deleteRule(ruleId) {
+      if (!confirm('Delete this alert rule?')) return;
+      try {
+        const res = await authFetch(`${API_BASE}/alert-rules/${ruleId}`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); return; }
+        await fetchAlertRules();
+      } catch (err) { console.error('Delete rule failed:', err); }
     }
 
     // ---- Incidents ----
     async function fetchIncidents() {
       try {
-        const res = await fetch(`${API_BASE}/incidents?limit=20`);
+        const res = await authFetch(`${API_BASE}/incidents?limit=20`);
         if (!res.ok) return;
         const data = await res.json();
         const feed = document.getElementById('incidents-feed');
@@ -922,7 +1514,7 @@
       // Update table (only active services from WS)
       const tbody = document.getElementById('services-tbody');
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">No services registered</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No services registered</td></tr>';
         return;
       }
       tbody.innerHTML = data.map(s => `
@@ -930,6 +1522,7 @@
           <td><strong>${esc(s.service_name)}</strong></td>
           <td>${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
           <td style="color:var(--text-muted); font-size:.82rem;">${esc(s.url)}</td>
+          <td><span class="method-badge ${(s.check_method || 'GET').toLowerCase()}">${esc(s.check_method || 'GET')}</span></td>
           <td><span class="badge ${badgeClass(s.current_status)}">${s.current_status || 'N/A'}</span></td>
           <td>${s.uptime_24h.toFixed(1)} %</td>
           <td>${s.avg_response_time.toFixed(0)} ms</td>
@@ -941,14 +1534,35 @@
         </tr>
       `).join('');
 
-      // Also refresh incidents on each WS update
-      fetchIncidents();
+      // Update cached services for alert-rule modal
+      cachedServices = data;
+
+      // Debounced refresh of alerts, chart, incidents (avoid hammering on rapid WS)
+      clearTimeout(renderDashboardFromWS._sideTimer);
+      renderDashboardFromWS._sideTimer = setTimeout(async () => {
+        await Promise.all([fetchAlerts(), fetchIncidents(), fetchChartData(data)]);
+      }, 2000);
     }
 
-    // Initial load + fallback polling + WebSocket
-    refresh();
-    setInterval(refresh, 30000);  // fallback if WS disconnects
-    connectWebSocket();
+    // ---- Initial auth check & boot ----
+    (async function boot() {
+      const token = getToken();
+      if (!token) { showLogin(); return; }
+      try {
+        const res = await authFetch(`${API_BASE}/auth/me`);
+        if (!res.ok) throw new Error('token invalid');
+        const user = await res.json();
+        localStorage.setItem('jwt_user', user.username);
+        localStorage.setItem('jwt_role', user.role);
+        hideLogin();
+        refresh();
+        setInterval(refresh, 30000);
+        connectWebSocket();
+      } catch {
+        clearToken();
+        showLogin();
+      }
+    })();
   </script>
 </body>
 

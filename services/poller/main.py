@@ -77,7 +77,7 @@ def fetch_active_services(pool):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, name, url, check_interval, custom_headers "
+                "SELECT id, name, url, check_interval, custom_headers, check_method, check_body "
                 "FROM services WHERE is_active = TRUE"
             )
             rows = cur.fetchall()
@@ -94,6 +94,8 @@ def fetch_active_services(pool):
                     "url": row[2],
                     "check_interval": row[3],
                     "custom_headers": headers,
+                    "check_method": row[5] or "GET",
+                    "check_body": row[6],
                 })
             logger.info("Fetched %d active service(s) from DB", len(services))
             return services
@@ -131,13 +133,96 @@ def get_rabbitmq_connection():
 
 def check_service(service: dict) -> dict:
     """
-    Send an HTTP GET to the service URL and return a health-check result dict.
-    Custom headers from the DB are included in the request.
+    Check a service using the configured method (GET, POST, HEAD, or TCP).
+    Custom headers from the DB are included in HTTP requests.
     """
+    method = service.get("check_method", "GET").upper()
     headers = service.get("custom_headers") or {}
     start = time.time()
+
+    if method == "TCP":
+        return _check_tcp(service, start)
+
+    return _check_http(service, method, headers, start)
+
+
+def _check_tcp(service: dict, start: float) -> dict:
+    """Perform a raw TCP connection check (host:port)."""
+    import socket
+
+    url = service["url"]
+    # Strip protocol prefix if accidentally provided
+    addr = url.replace("https://", "").replace("http://", "").strip("/")
+    if ":" in addr:
+        host, port_str = addr.rsplit(":", 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            port = 443
+    else:
+        host = addr
+        port = 443
+
     try:
-        resp = requests.get(service["url"], timeout=REQUEST_TIMEOUT, headers=headers)
+        sock = socket.create_connection((host, port), timeout=REQUEST_TIMEOUT)
+        elapsed_ms = round((time.time() - start) * 1000, 2)
+        sock.close()
+        return {
+            "service_id": service["id"],
+            "service_name": service["name"],
+            "url": service["url"],
+            "status": "UP",
+            "response_time_ms": elapsed_ms,
+            "status_code": None,
+            "error": None,
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "check_method": "TCP",
+        }
+    except socket.timeout:
+        elapsed_ms = round((time.time() - start) * 1000, 2)
+        return {
+            "service_id": service["id"],
+            "service_name": service["name"],
+            "url": service["url"],
+            "status": "DOWN",
+            "response_time_ms": elapsed_ms,
+            "status_code": None,
+            "error": f"TCP connection timed out after {REQUEST_TIMEOUT}s",
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "check_method": "TCP",
+        }
+    except Exception as exc:
+        elapsed_ms = round((time.time() - start) * 1000, 2)
+        return {
+            "service_id": service["id"],
+            "service_name": service["name"],
+            "url": service["url"],
+            "status": "DOWN",
+            "response_time_ms": elapsed_ms,
+            "status_code": None,
+            "error": str(exc),
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "check_method": "TCP",
+        }
+
+
+def _check_http(service: dict, method: str, headers: dict, start: float) -> dict:
+    """Perform an HTTP health check using GET, POST, or HEAD."""
+    try:
+        body = service.get("check_body")
+        kwargs = {
+            "url": service["url"],
+            "timeout": REQUEST_TIMEOUT,
+            "headers": headers,
+        }
+        if method == "POST":
+            kwargs["data"] = body
+            resp = requests.post(**kwargs)
+        elif method == "HEAD":
+            resp = requests.head(**kwargs)
+        else:  # GET (default)
+            resp = requests.get(**kwargs)
+
         elapsed_ms = round((time.time() - start) * 1000, 2)
         status = "UP" if 200 <= resp.status_code < 300 else "DOWN"
         return {
@@ -149,6 +234,7 @@ def check_service(service: dict) -> dict:
             "status_code": resp.status_code,
             "error": None,
             "checked_at": datetime.now(timezone.utc).isoformat(),
+            "check_method": method,
         }
     except requests.exceptions.Timeout:
         elapsed_ms = round((time.time() - start) * 1000, 2)
@@ -159,8 +245,9 @@ def check_service(service: dict) -> dict:
             "status": "DOWN",
             "response_time_ms": elapsed_ms,
             "status_code": None,
-            "error": "Request timed out after 5s",
+            "error": f"{method} request timed out after {REQUEST_TIMEOUT}s",
             "checked_at": datetime.now(timezone.utc).isoformat(),
+            "check_method": method,
         }
     except requests.exceptions.RequestException as exc:
         elapsed_ms = round((time.time() - start) * 1000, 2)
@@ -173,6 +260,7 @@ def check_service(service: dict) -> dict:
             "status_code": None,
             "error": str(exc),
             "checked_at": datetime.now(timezone.utc).isoformat(),
+            "check_method": method,
         }
 
 # ---------------------------------------------------------------------------
@@ -191,8 +279,9 @@ def publish_result(channel, result: dict):
         ),
     )
     logger.info(
-        "Published: service=%s status=%s time=%.1fms",
+        "Published: service=%s method=%s status=%s time=%.1fms",
         result["service_name"],
+        result.get("check_method", "GET"),
         result["status"],
         result["response_time_ms"],
     )

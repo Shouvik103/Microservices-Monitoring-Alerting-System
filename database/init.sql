@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS services (
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     tags            TEXT[] NOT NULL DEFAULT '{}',
     custom_headers  JSONB NOT NULL DEFAULT '{}',
+    check_method    VARCHAR(10) NOT NULL DEFAULT 'GET' CHECK (check_method IN ('GET', 'POST', 'HEAD', 'TCP')),
+    check_body      TEXT,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -51,3 +53,42 @@ CREATE INDEX IF NOT EXISTS idx_services_tags ON services USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_incidents_service_id ON incidents(service_id);
 CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
 CREATE INDEX IF NOT EXISTS idx_incidents_started_at ON incidents(started_at DESC);
+
+-- ============================================================
+-- Users (JWT authentication)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS users (
+    id              SERIAL PRIMARY KEY,
+    username        VARCHAR(150) NOT NULL UNIQUE,
+    hashed_password TEXT NOT NULL,
+    role            VARCHAR(20) NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin', 'editor', 'viewer')),
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+-- Default admin user  (password: admin123  — change in production!)
+-- bcrypt hash of 'admin123'
+INSERT INTO users (username, hashed_password, role)
+VALUES ('admin', '$2b$12$N/.cEmbGqevX8l5BKrrBPujHvqJQuHntTh32DkhF.DAlDy9svDRZG', 'admin')
+ON CONFLICT (username) DO NOTHING;
+
+-- ============================================================
+-- Custom Alert Rules (per-service thresholds)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS alert_rules (
+    id              SERIAL PRIMARY KEY,
+    service_id      INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+    metric          VARCHAR(30) NOT NULL CHECK (metric IN ('response_time_ms', 'status_code', 'status')),
+    operator        VARCHAR(5)  NOT NULL CHECK (operator IN ('>', '<', '>=', '<=', '==', '!=')),
+    threshold       DOUBLE PRECISION NOT NULL,
+    severity        VARCHAR(20) NOT NULL DEFAULT 'warning' CHECK (severity IN ('critical', 'warning', 'info')),
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    cooldown_s      INTEGER NOT NULL DEFAULT 300,
+    description     TEXT,
+    created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alert_rules_service ON alert_rules(service_id);
+CREATE INDEX IF NOT EXISTS idx_alert_rules_active ON alert_rules(is_active);

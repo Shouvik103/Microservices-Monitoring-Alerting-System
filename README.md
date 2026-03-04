@@ -84,6 +84,8 @@ Edit `.env` (or `.env.local`) — at minimum review:
 | `ALERT_EMAIL` | Recipient address |
 | `SLOW_THRESHOLD_MS` | Slow-response threshold (default 2 000 ms) |
 | `CHECK_INTERVAL` | Poll interval in seconds (default 30) |
+| `JWT_SECRET` | Secret key for JWT signing (default: built-in dev key) |
+| `JWT_EXPIRE_MINUTES` | Token lifetime in minutes (default 480 = 8 h) |
 
 ### 2. Start everything
 
