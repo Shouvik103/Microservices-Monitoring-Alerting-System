@@ -38,11 +38,40 @@ services:
     networks:
       - monitor-net
 
-  worker:
+  poller:
     build:
-      context: ./services
-      dockerfile: worker/Dockerfile
-    container_name: monitor-worker
+      context: ./services/poller
+    container_name: monitor-poller
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-net
+
+  db-writer:
+    build:
+      context: ./services/db-writer
+    container_name: monitor-db-writer
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-net
+
+  alerter:
+    build:
+      context: ./services/alerter
+    container_name: monitor-alerter
     env_file:
       - .env
     depends_on:

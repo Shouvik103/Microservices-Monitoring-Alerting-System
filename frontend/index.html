@@ -54,6 +54,25 @@
       border-bottom: 1px solid var(--border);
     }
 
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .header .meta {
+      font-size: .98rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: auto;
+      text-align: center;
+      min-width: 180px;
+    }
+
     .header h1 {
       font-size: 1.6rem;
       font-weight: 700;
@@ -63,18 +82,47 @@
     }
 
     .header .meta {
-      font-size: .82rem;
+      font-size: .92rem;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      text-align: center;
     }
 
     .header .meta .dot {
+      /* removed old .dot, replaced by .ws-indicator below */
+    }
+
+    .header .meta .ws-indicator {
       display: inline-block;
-      width: 8px;
-      height: 8px;
+      width: 12px;
+      height: 12px;
       background: var(--green);
       border-radius: 50%;
-      margin-right: 6px;
-      animation: pulse 2s infinite;
+      margin-right: 8px;
+      box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+      animation: bip-pulse 1.2s infinite cubic-bezier(.66, 0, 0, 1);
+      transition: background .3s;
+    }
+
+    @keyframes bip-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        opacity: 1;
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
+        opacity: .5;
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+        opacity: 1;
+      }
     }
 
     @keyframes pulse {
@@ -333,8 +381,9 @@
     /* ---- Two-col bottom ---- */
     .bottom-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 24px;
+      align-items: stretch;
     }
 
     @media (max-width: 900px) {
@@ -598,7 +647,19 @@
     .header .user-info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      font-size: .98rem;
+      min-width: 0;
+    }
+
+    .username-label {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      font-size: .98rem;
+      color: var(--text-muted);
+    }
     }
 
     .header .user-info .username-label {
@@ -607,19 +668,22 @@
     }
 
     .header .user-info .logout-btn {
-      padding: 5px 14px;
-      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border: 2px solid var(--accent-light);
       border-radius: 6px;
       background: transparent;
       color: var(--text-muted);
-      font-size: .76rem;
+      font-size: .92rem;
       cursor: pointer;
-      transition: border-color .15s, color .15s;
+      transition: border-color .15s, color .15s, background .15s;
+      font-weight: 500;
+      box-shadow: 0 0 0 1px var(--bg-card);
     }
 
     .header .user-info .logout-btn:hover {
       border-color: var(--red);
       color: var(--red);
+      background: rgba(231, 76, 60, 0.08);
     }
 
     /* ---- Alert Rules Section ---- */
@@ -777,10 +841,20 @@
 
   <!-- Header -->
   <header class="header">
-    <h1>🔍 Microservices Monitor</h1>
-    <div class="meta">
-      <span class="ws-indicator" id="ws-dot"></span>
-      <span id="refresh-label">Connecting …</span>
+    <div style="display:flex;align-items:center;gap:38px;width:100%;min-width:0;">
+      <div class="logo-title">
+        <span style="font-size:2.3rem;line-height:1;filter:drop-shadow(0 2px 8px #6c63ff55);">🔍</span>
+        <div style="display:flex;flex-direction:row;align-items:center;gap:6px;">
+          <span
+            style="font-size:1.7rem;font-weight:700;background:linear-gradient(135deg,var(--accent-light),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Microservices</span>
+          <span
+            style="font-size:1.7rem;font-weight:700;background:linear-gradient(135deg,var(--accent-light),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Monitor</span>
+        </div>
+      </div>
+      <div class="meta">
+        <span class="ws-indicator" id="ws-dot"></span>
+        <span id="refresh-label" style="font-weight:600;letter-spacing:.5px;">Live (WebSocket)</span>
+      </div>
     </div>
     <div class="user-info" id="user-info" style="display:none">
       <span class="username-label" id="username-label"></span>
@@ -846,21 +920,27 @@
 
     <!-- Bottom grid: Chart + Alerts + Incidents -->
     <div class="bottom-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-      <div class="chart-card">
+      <div class="chart-card"
+        style="display:flex;flex-direction:column;justify-content:stretch;height:100%;min-height:260px;">
         <h2 class="section-title">Response Time (ms)</h2>
-        <div style="position:relative;height:250px;">
+        <div style="flex:1;position:relative;min-height:220px;max-height:260px;">
           <canvas id="responseChart"></canvas>
         </div>
+        <div id="service-selector"
+          style="margin-top:18px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:16px;">
+        </div>
       </div>
-      <div class="alerts-card">
+      <div class="alerts-card"
+        style="display:flex;flex-direction:column;justify-content:stretch;height:100%;min-height:260px;">
         <h2 class="section-title">Recent Alerts</h2>
-        <div id="alerts-feed">
+        <div id="alerts-feed" style="flex:1;min-height:120px;">
           <div class="empty">Loading …</div>
         </div>
       </div>
-      <div class="alerts-card">
+      <div class="alerts-card"
+        style="display:flex;flex-direction:column;justify-content:stretch;height:100%;min-height:260px;">
         <h2 class="section-title">Incident Timeline</h2>
-        <div id="incidents-feed">
+        <div id="incidents-feed" style="flex:1;min-height:120px;">
           <div class="empty">Loading …</div>
         </div>
       </div>
@@ -887,7 +967,9 @@
             </tr>
           </thead>
           <tbody id="rules-tbody">
-            <tr><td colspan="8" class="empty">Loading …</td></tr>
+            <tr>
+              <td colspan="8" class="empty">Loading …</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -960,7 +1042,12 @@
 
     let responseChart = null;
     let allTags = new Set();
-    let cachedServices = []; // for rule modal dropdown
+    let cachedServices = [];
+    let selectedServiceIds = new Set();  // track which services are shown on chart
+    const CHART_COLORS = [
+      '#6c63ff', '#2ecc71', '#e74c3c', '#f1c40f', '#3498db',
+      '#9b59b6', '#e67e22', '#1abc9c', '#ec407a'
+    ];
 
     // ================================================================
     // JWT Token Management
@@ -995,7 +1082,9 @@
     function hideLogin() {
       document.getElementById('login-overlay').classList.add('hidden');
       document.getElementById('user-info').style.display = 'flex';
-      document.getElementById('username-label').textContent = `👤 ${getUser()} (${getRole()})`;
+      const user = getUser();
+      const role = getRole();
+      document.getElementById('username-label').innerHTML = `<span style="font-size:1.2em;opacity:.7;margin-right:4px;">👤</span><span>${user}</span><span style="opacity:.7;margin-left:4px;">(${role})</span>`;
     }
 
     async function doLogin() {
@@ -1097,6 +1186,9 @@
         document.getElementById('total-count').textContent = dashData.length + pausedServices.length;
         document.getElementById('up-count').textContent = up;
         document.getElementById('down-count').textContent = down;
+
+        // Update service selector for chart
+        updateServiceSelector(dashData);
 
         // Table
         const tbody = document.getElementById('services-tbody');
@@ -1220,50 +1312,69 @@
       }
     }
 
-    // ---- Response Time Chart ----
+    // ---- Response Time Chart (multi-service) ----
     async function fetchChartData(services) {
       if (!services || services.length === 0) return;
 
-      // Pick first service that has data
-      const svc = services.find(s => s.current_status) || services[0];
-      if (!svc) return;
+      // If no services selected yet, select all
+      if (selectedServiceIds.size === 0) {
+        services.forEach(s => selectedServiceIds.add(s.service_id));
+      }
+
+      const selected = services.filter(s => selectedServiceIds.has(s.service_id));
+      if (selected.length === 0) return;
 
       try {
-        const res = await authFetch(`${API_BASE}/services/${svc.service_id}/health?limit=30&hours=6`);
-        if (!res.ok) return;
-        const checks = await res.json();
-
-        const sorted = checks.slice().reverse();
-        const labels = sorted.map(c => {
-          const d = new Date(c.checked_at);
-          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Fetch health data for all selected services in parallel
+        const fetches = selected.map(async (svc, idx) => {
+          const res = await authFetch(`${API_BASE}/services/${svc.service_id}/health?limit=30&hours=6`);
+          if (!res.ok) return null;
+          const checks = await res.json();
+          const sorted = checks.slice().reverse();
+          const color = CHART_COLORS[idx % CHART_COLORS.length];
+          return {
+            svc,
+            sorted,
+            color,
+            labels: sorted.map(c => {
+              const d = new Date(c.checked_at);
+              return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }),
+            values: sorted.map(c => c.response_time_ms || 0),
+          };
         });
-        const values = sorted.map(c => c.response_time_ms || 0);
 
-        // Update existing chart data in-place (avoids destroy/recreate flicker)
+        const results = (await Promise.all(fetches)).filter(Boolean);
+        if (results.length === 0) return;
+
+        // Use the longest label set as the x-axis
+        let longestLabels = [];
+        results.forEach(r => { if (r.labels.length > longestLabels.length) longestLabels = r.labels; });
+
+        const datasets = results.map((r, i) => {
+          const color = CHART_COLORS[i % CHART_COLORS.length];
+          return {
+            label: r.svc.service_name,
+            data: r.values,
+            borderColor: color,
+            backgroundColor: color + '1A',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: color,
+            tension: .35,
+            fill: false,
+          };
+        });
+
         if (responseChart) {
-          responseChart.data.labels = labels;
-          responseChart.data.datasets[0].data = values;
-          responseChart.data.datasets[0].label = `${svc.service_name} — Response Time (ms)`;
-          responseChart.update('none');  // 'none' disables animation for speed
+          responseChart.data.labels = longestLabels;
+          responseChart.data.datasets = datasets;
+          responseChart.update('none');
         } else {
           const ctx = document.getElementById('responseChart').getContext('2d');
           responseChart = new Chart(ctx, {
             type: 'line',
-            data: {
-              labels,
-              datasets: [{
-                label: `${svc.service_name} — Response Time (ms)`,
-                data: values,
-                borderColor: '#6c63ff',
-                backgroundColor: 'rgba(108,99,255,.1)',
-                borderWidth: 2,
-                pointRadius: 3,
-                pointBackgroundColor: '#6c63ff',
-                tension: .35,
-                fill: true,
-              }]
-            },
+            data: { labels: longestLabels, datasets },
             options: {
               responsive: true,
               maintainAspectRatio: false,
@@ -1292,8 +1403,47 @@
       }
     }
 
+    function updateServiceSelector(services) {
+      const sel = document.getElementById('service-selector');
+      if (!sel) return;
+      const all = cachedServices && cachedServices.length ? cachedServices : services;
+      if (!all || all.length === 0) {
+        sel.innerHTML = '';
+        return;
+      }
+      // If no selection yet, select all
+      if (selectedServiceIds.size === 0) {
+        all.forEach(s => selectedServiceIds.add(s.service_id));
+      }
+      sel.innerHTML = all.map((s, i) => {
+        const color = CHART_COLORS[i % CHART_COLORS.length];
+        const checked = selectedServiceIds.has(s.service_id) ? 'checked' : '';
+        return `
+        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer;">
+          <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;"></span>
+          <input type="checkbox" name="svc-select" value="${s.service_id}" ${checked} onclick="onServiceCheckboxClick(event, ${s.service_id})">
+          <span>${s.service_name}</span>
+        </label>`;
+      }).join('');
+    }
+
+    // Toggle individual services on/off
+    window.onServiceCheckboxClick = function (e, id) {
+      if (e.target.checked) {
+        selectedServiceIds.add(id);
+      } else {
+        // Prevent unchecking all (at least one must remain)
+        if (selectedServiceIds.size <= 1) {
+          e.target.checked = true;
+          return;
+        }
+        selectedServiceIds.delete(id);
+      }
+      fetchChartData(cachedServices);
+    }
+
     // ---- Escape HTML ----
-    const _escMap = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+    const _escMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     function esc(str) {
       if (!str) return '';
       return String(str).replace(/[&<>"']/g, c => _escMap[c]);

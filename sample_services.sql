@@ -8,4 +8,8 @@ VALUES
     ('JSONPlaceholder',  'https://jsonplaceholder.typicode.com/posts/1', 30, TRUE, ARRAY['staging', 'external'], '{}', 'GET', NULL),
     ('GitHub Status',    'https://www.githubstatus.com/api/v2/status.json', 60, TRUE, ARRAY['production', 'monitoring'], '{"Accept": "application/json"}', 'HEAD', NULL),
     ('HTTPBin POST',     'https://httpbin.org/post',    30, TRUE, ARRAY['staging', 'external'], '{"Content-Type": "application/json"}', 'POST', '{"health": true}'),
-    ('Google DNS TCP',   'dns.google:443',              60, TRUE, ARRAY['production', 'infrastructure'], '{}', 'TCP', NULL);
+    ('Google DNS TCP',   'dns.google:443',              60, TRUE, ARRAY['production', 'infrastructure'], '{}', 'TCP', NULL),
+    ('Monitor API',      'http://api:8000/metrics',     30, TRUE, ARRAY['production', 'internal'], '{}', 'GET', NULL),
+    ('Monitor Frontend', 'monitor-frontend:80',         30, TRUE, ARRAY['production', 'internal'], '{}', 'TCP', NULL),
+    ('RabbitMQ',         'monitor-rabbitmq:5672',       30, TRUE, ARRAY['production', 'internal'], '{}', 'TCP', NULL),
+    ('Postgres DB',      'monitor-postgres:5432',       30, TRUE, ARRAY['production', 'internal'], '{}', 'TCP', NULL);
