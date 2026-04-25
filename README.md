@@ -1,7 +1,12 @@
 # 🔍 Microservices Monitoring & Alerting System
 
-A production-ready, event-driven monitoring platform that health-checks
-your microservices and alerts you in real-time via Slack and email.
+A production-ready, event-driven monitoring platform that health-checks your microservices and alerts you in real-time via Slack and email.
+
+> **Resume Highlights:**
+> * Designed and built a production-grade, event-driven monitoring platform that health-checks 9+ microservices in real time via HTTP (GET/POST/HEAD) and TCP probes, with configurable polling intervals.
+> * Engineered a decoupled microservices architecture using RabbitMQ as a message broker — a Poller publishes health results, a DB Writer persists them to PostgreSQL, and an Alerter evaluates alert conditions and dispatches notifications via Slack webhooks and SMTP email.
+> * Developed a RESTful API with FastAPI featuring JWT-based authentication, role-based access control (admin/editor/viewer), service CRUD, health history, uptime analytics (1h/24h/7d/30d), CSV/JSON data export, and a Prometheus-compatible `/metrics` endpoint for Grafana integration.
+> * Built a real-time dashboard with WebSocket live updates, multi-service response time charts, an incident timeline tracking outage duration, custom per-service alert rules, and dynamic configuration.
 
 ---
 
@@ -9,26 +14,26 @@ your microservices and alerts you in real-time via Slack and email.
 
 ```
 ┌──────────────┐       ┌───────────────────────────────┐
-│   Frontend   │       │         REST API (FastAPI)     │
+│   Frontend   │       │         REST API (FastAPI)    │
 │  (nginx:80)  │──────▶│  :8000  /services  /dashboard │
-└──────────────┘       │         /alerts    /uptime     │
+└──────────────┘   ws  │         /alerts    /ws (live) │
                        └────────────┬──────────────────┘
                                     │  SQLAlchemy async
                                     ▼
                             ┌──────────────┐
-                            │  PostgreSQL   │
-                            │  :5432        │
+                            │  PostgreSQL  │
+                            │  :5432       │
                             └──────┬───────┘
                                    ▲
             ┌──────────────────────┤
             │                      │
   ┌─────────┴──────┐   ┌──────────┴─────────┐
-  │   DB Writer     │   │     Alerter        │
-  │  (consumer)     │   │   (consumer)       │
-  └────────┬───────┘   │  Slack / Email      │
-           │            └──────────┬─────────┘
-           │                       │
-           ▼                       ▼
+  │   DB Writer    │   │     Alerter        │
+  │  (consumer)    │   │   (consumer)       │
+  └────────┬───────┘   │  Slack / Email     │
+           │           └──────────┬─────────┘
+           │                      │
+           ▼                      ▼
       ┌──────────────────────────────────┐
       │         RabbitMQ                 │
       │    queue: health.results         │
@@ -38,25 +43,20 @@ your microservices and alerts you in real-time via Slack and email.
                      │  publish
            ┌─────────┴─────────┐
            │      Poller       │
-           │  (every 30 s)     │
-           │  HTTP GET → svc   │
+           │  (every X sec)    │
+           │  HTTP/TCP → svc   │
            └───────────────────┘
 ```
 
-### Data flow
+### Microservices Structure
 
-1. **Poller** reads active services from PostgreSQL, polls each via
-   HTTP, and publishes results to the `health.results` RabbitMQ queue.
-2. **DB Writer** consumes the queue and inserts rows into the
-   `health_checks` table.
-3. **Alerter** consumes the same queue, evaluates alert conditions
-   (DOWN / SLOW / RECOVERED), and dispatches Slack + email
-   notifications. Alerts are also persisted to the `alerts` table.
-4. **API** (FastAPI) exposes REST endpoints for services CRUD,
-   health history, uptime stats, alerts, and a dashboard summary.
-5. **Frontend** is a single HTML page served by nginx that calls the
-   API every 30 seconds and renders live cards, a table, charts, and
-   an alerts feed.
+The backend is built with independent, highly-modularized Python 3.11 services:
+
+1. **API (`services/api/`)**: Evaluates HTTP requests, handles JWT authentication, and pushes live WebSocket updates. Heavily modularized into focused route modules (`auth`, `services`, `health`, `uptime`, `alerts`, `dashboard`, `incidents`, `alert_rules`, `metrics`).
+2. **Alerter (`services/alerter/`)**: Consumes RabbitMQ messages, evaluates status and custom alert rules, and sends notifications. Modularized into components (`config`, `db`, `rabbitmq`, `notifiers`, `evaluator`).
+3. **Poller (`services/poller/`)**: Probes target services via HTTP/TCP and publishes results.
+4. **DB Writer (`services/db-writer/`)**: Consumes the queue and persists checks to PostgreSQL to optimize write operations.
+5. **Frontend (`frontend/`)**: Static dashboard served by nginx using Chart.js, raw WebSockets for real-time updates, and an incident timeline tracker.
 
 ---
 
@@ -65,98 +65,57 @@ your microservices and alerts you in real-time via Slack and email.
 ### Prerequisites
 
 - Docker & Docker Compose v2+
-- (Optional) A Slack incoming-webhook URL
-- (Optional) An SMTP account for email alerts
 
-### 1. Clone & configure
+### 1. Clone & Configure
 
 ```bash
 cd monitoring-system
 cp .env .env.local   # edit .env.local to set your own secrets
 ```
 
-Edit `.env` (or `.env.local`) — at minimum review:
+Ensure `.env` contains your preferred threshold, interval, and credentials. (e.g., `SLACK_WEBHOOK_URL`, `ALERT_EMAIL`).
 
-| Variable | Purpose |
-|---|---|
-| `SLACK_WEBHOOK_URL` | Slack incoming webhook |
-| `SMTP_HOST / SMTP_USER / SMTP_PASS` | SMTP credentials for email |
-| `ALERT_EMAIL` | Recipient address |
-| `SLOW_THRESHOLD_MS` | Slow-response threshold (default 2 000 ms) |
-| `CHECK_INTERVAL` | Poll interval in seconds (default 30) |
-| `JWT_SECRET` | Secret key for JWT signing (default: built-in dev key) |
-| `JWT_EXPIRE_MINUTES` | Token lifetime in minutes (default 480 = 8 h) |
-
-### 2. Start everything
+### 2. Start Everything
 
 ```bash
 docker-compose up -d --build
 ```
+Wait ~30 seconds for all containers to report health.
 
-Wait ~30 seconds for all services to become healthy:
+### 3. Load Sample Services
 
-```bash
-docker-compose ps
-```
-
-### 3. Load sample services
-
+Load 10+ target microservices for testing purposes:
 ```bash
 docker exec -i monitor-postgres psql -U monitor -d monitoring < sample_services.sql
 ```
 
-Or register via the API:
+### 4. View the Dashboard
 
-```bash
-curl -X POST http://localhost:8000/services \
-  -H "Content-Type: application/json" \
-  -d '{"name":"HTTPBin","url":"https://httpbin.org/get","check_interval":30}'
-```
+Open **http://localhost:3001** in your browser.
+*(Login with `admin` / `admin123` to add new services or manage alert rules).*
 
-### 4. View the dashboard
+### 5. Explore API Docs
 
-Open **http://localhost:3000** in your browser.
+Open **http://localhost:8000/docs** to access the Swagger OpenAPI documentation.
 
-### 5. Explore the API docs
+### 6. Export Metrics for Grafana
 
-Open **http://localhost:8000/docs** for Swagger / OpenAPI.
+Point Prometheus to the metrics endpoint: **http://localhost:8000/metrics**.
 
 ---
 
 ## Key Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/services` | List all services |
-| `POST` | `/services` | Register a new service |
-| `DELETE` | `/services/{id}` | Deactivate a service |
-| `GET` | `/services/{id}/health` | Recent health checks |
-| `GET` | `/services/{id}/uptime` | Uptime & avg response time |
-| `GET` | `/alerts` | Recent alerts |
-| `GET` | `/dashboard` | Full dashboard summary |
-
----
-
-## Configuring Slack Webhook
-
-1. Go to **https://api.slack.com/apps** → Create New App → Incoming Webhooks.
-2. Copy the webhook URL.
-3. Set `SLACK_WEBHOOK_URL` in `.env`.
-4. Restart the alerter: `docker-compose restart alerter`.
-
----
-
-## Managing Services
-
-```bash
-# Register
-curl -X POST http://localhost:8000/services \
-  -H "Content-Type: application/json" \
-  -d '{"name":"My API","url":"https://api.example.com/health","check_interval":30}'
-
-# Deactivate
-curl -X DELETE http://localhost:8000/services/1
-```
+| Method | Path | Description | Auth Required |
+|--------|------|-------------|---------------|
+| `POST` | `/auth/login` | Receive JWT Token | ❌ |
+| `GET`  | `/dashboard` | Dashboard summary | ✅ |
+| `WS`   | `/ws`  | Live dashboard WebSocket | ❌ |
+| `GET`  | `/services/{id}/health` | Health checks history | ✅ |
+| `GET`  | `/services/{id}/export` | Export CSV/JSON history | ✅ |
+| `GET`  | `/incidents` | Incident timeline history | ✅ |
+| `GET`  | `/alert-rules` | Custom per-service alerts | ✅ |
+| `GET`  | `/metrics` | Prometheus metrics scrape | ❌ |
 
 ---
 
@@ -169,20 +128,5 @@ docker-compose down -v        # stop + remove volumes (clears DB)
 
 ---
 
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Language | Python 3.11 |
-| API | FastAPI + Uvicorn |
-| Database | PostgreSQL 15, SQLAlchemy (async) + asyncpg |
-| Message Queue | RabbitMQ 3 (management) |
-| Alerting | Slack Webhooks, SMTP email |
-| Frontend | HTML + CSS + Chart.js |
-| Container | Docker + Docker Compose |
-
----
-
 ## License
-
 MIT
